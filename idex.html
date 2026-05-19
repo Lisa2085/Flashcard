@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>新HSK1 第13课 · 生词Flashcard · 完整可见版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(145deg, #cfe0ea 0%, #bbd1de 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', 'Roboto', 'Noto Sans', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+        }
+
+        /* 网格布局：一行5个，响应式降级 */
+        .cards-grid {
+            max-width: 1800px;
+            width: 100%;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(5, minmax(240px, 1fr));
+            gap: clamp(16px, 2vw, 24px);
+            padding: clamp(12px, 2vw, 20px);
+        }
+
+        @media (max-width: 1300px) {
+            .cards-grid { grid-template-columns: repeat(4, minmax(240px, 1fr)); }
+        }
+        @media (max-width: 1050px) {
+            .cards-grid { grid-template-columns: repeat(3, minmax(250px, 1fr)); }
+        }
+        @media (max-width: 800px) {
+            .cards-grid { grid-template-columns: repeat(2, minmax(260px, 1fr)); }
+        }
+        @media (max-width: 580px) {
+            .cards-grid { grid-template-columns: 1fr; }
+        }
+
+        /* 卡片容器 */
+        .flashcard-container {
+            perspective: 1800px;
+            width: 100%;
+            cursor: default;
+            aspect-ratio: 4 / 3;
+            min-width: 0;
+        }
+
+        .card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            transform-style: preserve-3d;
+            border-radius: clamp(16px, 4%, 28px);
+            box-shadow: 0 15px 30px -12px rgba(0, 0, 0, 0.2);
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: clamp(16px, 4%, 28px);
+            background: #eff6fb;
+            background-image: radial-gradient(circle at 20% 30%, rgba(160, 205, 225, 0.2) 1%, transparent 1.5%);
+            background-size: 24px 24px;
+            box-shadow: inset 0 1px 3px rgba(255,255,255,0.8), 0 12px 22px -10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: clamp(8px, 2.5%, 1rem);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .card-front {
+            transform: rotateY(0deg);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border: 1px solid rgba(120, 170, 195, 0.4);
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            justify-content: flex-start;  /* 改为 flex-start，让内容自然从上到下排列 */
+            align-items: stretch;
+            text-align: left;
+            border: 1px solid rgba(120, 170, 195, 0.4);
+        }
+
+        /* 正面样式 */
+        .word-block {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: min(1.5vh, 0.8rem);
+        }
+        
+        .pinyin {
+            font-size: clamp(1rem, 4vw, 2rem);
+            font-weight: 500;
+            color: #397394;
+            background: rgba(220, 240, 252, 0.7);
+            display: inline-block;
+            padding: 0.15em 0.8em;
+            border-radius: 60px;
+            letter-spacing: 1px;
+            backdrop-filter: blur(3px);
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+            cursor: pointer;
+            transition: 0.1s;
+            text-align: center;
+        }
+        .pinyin:hover { background: #c9e2f0; transform: scale(1.02); }
+        
+        .hanzi {
+            font-size: clamp(2rem, 9vw, 5rem);
+            font-weight: 700;
+            color: #1d5a7c;
+            line-height: 1.2;
+            text-shadow: 2px 2px 0 rgba(255,255,240,0.8);
+            font-family: 'KaiTi', '华文楷书', 'STKaiti', '楷体', cursive;
+            cursor: pointer;
+            transition: 0.1s;
+            text-align: center;
+        }
+        .hanzi:hover { background: #e2eff7; border-radius: 40px; transform: scale(1.02); }
+        
+        .front-flip-hint {
+            margin-top: auto;
+            text-align: center;
+            font-size: clamp(0.5rem, 1.8vw, 0.7rem);
+            color: #8aaec2;
+            padding-top: 0.4rem;
+            border-top: 1px solid #d3e5f0;
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* ========= 反面样式 - 完全可见，无遮盖 ========= */
+        .back-top-word {
+            background: #e9f2f8;
+            border-radius: clamp(14px, 4%, 24px);
+            padding: clamp(5px, 2%, 0.5rem);
+            margin-bottom: clamp(3px, 1.2%, 0.5rem);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(2px, 1%, 0.25rem);
+            flex-shrink: 0;
+        }
+        
+        .top-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(4px, 1.5vw, 0.6rem);
+            flex-wrap: wrap;
+            cursor: pointer;
+            padding: 0.15rem 0;
+            border-radius: 40px;
+            transition: 0.1s;
+        }
+        .top-row:hover {
+            background: rgba(200, 220, 240, 0.5);
+        }
+        
+        .word-part {
+            display: inline-flex;
+            align-items: center;
+            gap: clamp(3px, 1.2vw, 0.4rem);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .back-pinyin {
+            font-size: clamp(0.8rem, 2.8vw, 1.3rem);
+            font-weight: 500;
+            color: #397394;
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+            display: inline-block;
+        }
+        
+        .back-hanzi {
+            font-size: clamp(1.2rem, 5vw, 2.2rem);
+            font-weight: 700;
+            color: #1d5a7c;
+            font-family: 'KaiTi', '华文楷书', 'STKaiti', '楷体', cursive;
+            display: inline-block;
+        }
+        
+        .hidden-word { display: none !important; }
+        
+        .question-placeholder {
+            font-size: clamp(0.8rem, 3vw, 1.3rem);
+            font-weight: bold;
+            color: #c96f0e;
+            background: #fdebd0;
+            display: inline-block;
+            padding: 0 0.25rem;
+            border-radius: 30px;
+            min-width: 1.6rem;
+            text-align: center;
+        }
+        
+        .hint-text {
+            font-size: clamp(0.45rem, 1.6vw, 0.65rem);
+            color: #d97706;
+            background: #fff3e6;
+            padding: 0.1rem 0.4rem;
+            border-radius: 50px;
+            white-space: nowrap;
+        }
+        @media (max-width: 700px) {
+            .hint-text { white-space: normal; font-size: 0.45rem; padding: 0.1rem 0.3rem; }
+        }
+        .left-hint { order: -1; }
+        .right-hint { order: 1; }
+
+        /* 英文释义行 */
+        .meaning-row {
+            margin: clamp(2px, 1%, 0.3rem) 0;
+            flex-shrink: 0;
+        }
+        .english-meaning {
+            font-size: clamp(0.6rem, 2.2vw, 0.85rem);
+            font-weight: 500;
+            color: #2d688b;
+            background: #e3f0f7;
+            padding: 0.1rem 0.6rem;
+            border-radius: 40px;
+            display: inline-block;
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+            max-width: 100%;
+            word-break: break-word;
+        }
+
+        /* 例句区域 - 修复：允许自然伸缩，不限制高度 */
+        .examples-section {
+            background: rgba(250, 252, 255, 0.9);
+            border-radius: clamp(12px, 3.5%, 20px);
+            padding: clamp(5px, 1.8%, 0.5rem);
+            margin: 0.1rem 0;
+            border: 1px solid #cae0ec;
+            flex: 0 0 auto;      /* 不伸缩，根据内容自动高度 */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .example-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: clamp(3px, 1.2%, 6px);
+            flex-wrap: wrap;
+            gap: clamp(2px, 1vw, 6px);
+            flex-shrink: 0;
+        }
+        
+        .example-label {
+            font-weight: 600;
+            color: #2c6f92;
+            background: #e1f0f9;
+            padding: 0.1rem 0.6rem;
+            border-radius: 30px;
+            font-size: clamp(0.5rem, 1.8vw, 0.7rem);
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .toggle-group {
+            display: flex;
+            gap: clamp(2px, 1vw, 5px);
+            background: #eef4f9;
+            padding: 0.1rem 0.4rem;
+            border-radius: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .toggle-btn {
+            background: none;
+            border: none;
+            font-size: clamp(0.45rem, 1.6vw, 0.65rem);
+            font-weight: 500;
+            padding: 0.1rem 0.35rem;
+            border-radius: 30px;
+            cursor: pointer;
+            color: #366f8f;
+            font-family: 'Arial', sans-serif;
+            white-space: nowrap;
+        }
+        .toggle-btn.active {
+            background: #7fb4ce;
+            color: white;
+        }
+        .toggle-btn:hover:not(.active) { background: #cde2ef; }
+        
+        /* 单个例句卡片 */
+        .example-item {
+            background: #e6f2f9;
+            border-radius: clamp(12px, 3.5%, 20px);
+            padding: clamp(5px, 1.8%, 10px);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: clamp(2px, 0.8%, 0.3rem);
+        }
+        
+        .pinyin-line {
+            background: #d9e9f3;
+            border-radius: 24px;
+            padding: clamp(2px, 1.2%, 0.3rem) clamp(5px, 1.8%, 0.8rem);
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+            font-size: clamp(0.6rem, 2.2vw, 0.85rem);
+            color: #2d6a8f;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            flex-wrap: wrap;
+            gap: clamp(2px, 1.2vw, 0.5rem);
+            word-break: break-word;
+        }
+        .pinyin-line:hover { background: #cde2ef; }
+        .pinyin-word {
+            display: inline-block;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .hanzi-line {
+            font-family: 'KaiTi', '华文楷书', 'STKaiti', '楷体', cursive;
+            font-size: clamp(0.9rem, 3.8vw, 1.4rem);
+            font-weight: bold;
+            color: #1a5a7c;
+            cursor: pointer;
+            display: block;
+            background: #fefef9;
+            padding: clamp(2px, 1.2%, 0.25rem) clamp(5px, 1.8%, 0.6rem);
+            border-radius: 20px;
+            text-align: left;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .hanzi-line:hover { background: #f3f8fc; }
+        
+        .example-en {
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+            color: #4f738d;
+            font-size: clamp(0.6rem, 2.2vw, 0.85rem);
+            text-align: left;
+            padding-left: 0.2rem;
+            word-break: break-word;
+        }
+        
+        .hidden-line { display: none !important; }
+        
+        /* 底部区域 - 始终可见 */
+        .footer-area {
+            margin-top: clamp(3px, 1.2%, 0.4rem);
+            border-top: 1px solid #d3e5f0;
+            padding-top: clamp(3px, 1.2%, 0.35rem);
+            cursor: pointer;
+            transition: 0.1s;
+            border-radius: 14px;
+            flex-shrink: 0;
+        }
+        .footer-area:hover {
+            background: rgba(200, 220, 235, 0.25);
+        }
+        .back-flip-zone {
+            text-align: center;
+            padding: 0.1rem 0;
+        }
+        .back-flip-hint {
+            font-size: clamp(0.5rem, 1.8vw, 0.7rem);
+            color: #8aaec2;
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+            font-weight: 500;
+        }
+        .audio-hint {
+            text-align: center;
+            font-size: clamp(0.45rem, 1.6vw, 0.6rem);
+            color: #7da1ba;
+            font-family: 'Arial', 'Helvetica Neue', sans-serif;
+            margin-top: 0.1rem;
+            padding: 0.1rem;
+        }
+
+        /* 滚动条 */
+        .card-front::-webkit-scrollbar, .card-back::-webkit-scrollbar {
+            width: 3px;
+        }
+        .card-front::-webkit-scrollbar-track, .card-back::-webkit-scrollbar-track {
+            background: #d9e5ef;
+            border-radius: 10px;
+        }
+        .card-front::-webkit-scrollbar-thumb, .card-back::-webkit-scrollbar-thumb {
+            background: #89b9d1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="cards-grid" id="cardsGrid"></div>
+
+<script>
+    // 新HSK 3.0 第13课生词数据（20个词）
+    const vocabulary = [
+        { word: "可以", pinyin: "kě yǐ", meaning: "can; may; okay", example: { chinese: "我可以进来吗？", pinyin: ["wǒ", "kě yǐ", "jìn lái", "ma"], english: "May I come in?" } },
+        { word: "再", pinyin: "zài", meaning: "again; then", example: { chinese: "再见！", pinyin: ["zài", "jiàn"], english: "Goodbye!" } },
+        { word: "问题", pinyin: "wèn tí", meaning: "question; problem", example: { chinese: "我有一个问题。", pinyin: ["wǒ", "yǒu", "yí gè", "wèn tí"], english: "I have a question." } },
+        { word: "卖", pinyin: "mài", meaning: "to sell", example: { chinese: "这个店卖水果。", pinyin: ["zhè ge", "diàn", "mài", "shuǐ guǒ"], english: "This shop sells fruit." } },
+        { word: "打电话", pinyin: "dǎ diàn huà", meaning: "to make a phone call", example: { chinese: "我在打电话呢。", pinyin: ["wǒ", "zài", "dǎ diàn huà", "ne"], english: "I'm making a phone call." } },
+        { word: "一下", pinyin: "yí xià", meaning: "a little while; once", example: { chinese: "请等一下。", pinyin: ["qǐng", "děng", "yí xià"], english: "Please wait a moment." } },
+        { word: "服务员", pinyin: "fú wù yuán", meaning: "waiter; attendant", example: { chinese: "服务员，点菜。", pinyin: ["fú wù yuán", "diǎn cài"], english: "Waiter, I'd like to order." } },
+        { word: "女士", pinyin: "nǚ shì", meaning: "lady; madam", example: { chinese: "这位女士很漂亮。", pinyin: ["zhè wèi", "nǚ shì", "hěn", "piào liang"], english: "This lady is beautiful." } },
+        { word: "请", pinyin: "qǐng", meaning: "please; to invite", example: { chinese: "请进！", pinyin: ["qǐng", "jìn"], english: "Please come in." } },
+        { word: "坐", pinyin: "zuò", meaning: "to sit", example: { chinese: "请坐！", pinyin: ["qǐng", "zuò"], english: "Please sit down." } },
+        { word: "给", pinyin: "gěi", meaning: "to give; for", example: { chinese: "给我一杯水。", pinyin: ["gěi", "wǒ", "yì bēi", "shuǐ"], english: "Give me a glass of water." } },
+        { word: "杯", pinyin: "bēi", meaning: "cup; glass", example: { chinese: "一杯茶。", pinyin: ["yì", "bēi", "chá"], english: "A cup of tea." } },
+        { word: "要", pinyin: "yào", meaning: "to want; will", example: { chinese: "我要一杯咖啡。", pinyin: ["wǒ", "yào", "yì bēi", "kā fēi"], english: "I want a cup of coffee." } },
+        { word: "早饭", pinyin: "zǎo fàn", meaning: "breakfast", example: { chinese: "吃早饭了吗？", pinyin: ["chī", "zǎo fàn", "le", "ma"], english: "Have you had breakfast?" } },
+        { word: "这个", pinyin: "zhè ge", meaning: "this one", example: { chinese: "这个多少钱？", pinyin: ["zhè ge", "duō shao", "qián"], english: "How much is this?" } },
+        { word: "面包", pinyin: "miàn bāo", meaning: "bread", example: { chinese: "吃面包喝牛奶。", pinyin: ["chī", "miàn bāo", "hē", "niú nǎi"], english: "Eat bread and drink milk." } },
+        { word: "鸡蛋", pinyin: "jī dàn", meaning: "egg", example: { chinese: "一个鸡蛋。", pinyin: ["yí gè", "jī dàn"], english: "One egg." } },
+        { word: "先生", pinyin: "xiān sheng", meaning: "Mr.; husband", example: { chinese: "李先生你好。", pinyin: ["Lǐ", "xiān sheng", "nǐ hǎo"], english: "Hello, Mr. Li." } },
+        { word: "一半", pinyin: "yí bàn", meaning: "half", example: { chinese: "吃了一半。", pinyin: ["chī le", "yí bàn"], english: "Ate half of it." } },
+        { word: "茶", pinyin: "chá", meaning: "tea", example: { chinese: "请喝茶。", pinyin: ["qǐng", "hē", "chá"], english: "Please have some tea." } }
+    ];
+
+    function buildPinyinLine(pinyinArray) {
+        return pinyinArray.map(py => `<span class="pinyin-word">${py}</span>`).join('');
+    }
+
+    function generateTopControl(vocab, cardId) {
+        return `
+            <div class="top-row" data-control="pinyin" data-card="${cardId}">
+                <div class="word-part">
+                    <span class="back-pinyin" data-original="${vocab.pinyin}">${vocab.pinyin}</span>
+                    <span class="question-placeholder hidden-word" data-placeholder="pinyin">?</span>
+                </div>
+                <span class="hint-text left-hint hidden-word">Can you write the Pinyin?</span>
+            </div>
+            <div class="top-row" data-control="hanzi" data-card="${cardId}">
+                <div class="word-part">
+                    <span class="back-hanzi" data-original="${vocab.word}">${vocab.word}</span>
+                    <span class="question-placeholder hidden-word" data-placeholder="hanzi">?</span>
+                </div>
+                <span class="hint-text right-hint hidden-word">Can you write the Character?</span>
+            </div>
+        `;
+    }
+
+    function generateCardHTML(vocab, idx) {
+        const cardId = `card_${idx}`;
+        const ex = vocab.example;
+        const exPinyinHTML = buildPinyinLine(ex.pinyin);
+        const topControls = generateTopControl(vocab, cardId);
+        
+        return `
+            <div class="flashcard-container" data-card-id="${cardId}">
+                <div class="card" id="${cardId}">
+                    <div class="card-front">
+                        <div class="word-block">
+                            <div class="pinyin vocab-pinyin">${vocab.pinyin}</div>
+                            <div class="hanzi vocab-hanzi">${vocab.word}</div>
+                        </div>
+                        <div class="front-flip-hint">Click to flip</div>
+                    </div>
+                    
+                    <div class="card-back">
+                        <div class="back-top-word" id="topArea_${cardId}">
+                            ${topControls}
+                        </div>
+                        <div class="meaning-row">
+                            <span class="english-meaning"><strong>Meaning:</strong> ${vocab.meaning}</span>
+                        </div>
+                        <div class="examples-section">
+                            <div class="example-header">
+                                <span class="example-label">📖 Example</span>
+                                <div class="toggle-group" data-card="${cardId}">
+                                    <button class="toggle-btn" data-mode="cn">Chinese</button>
+                                    <button class="toggle-btn" data-mode="pinyin">Pinyin</button>
+                                    <button class="toggle-btn" data-mode="en">English</button>
+                                    <button class="toggle-btn" data-mode="all">All</button>
+                                </div>
+                            </div>
+                            <div class="example-item ex-item">
+                                <div class="pinyin-line ex-pinyin">${exPinyinHTML}</div>
+                                <div class="hanzi-line ex-hanzi">${ex.chinese}</div>
+                                <div class="example-en ex-en">${ex.english}</div>
+                            </div>
+                        </div>
+                        <div class="footer-area">
+                            <div class="back-flip-zone">
+                                <div class="back-flip-hint">click here to flip front</div>
+                            </div>
+                            <div class="audio-hint">Click Chinese character/Pinyin to hear audio</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderAllCards() {
+        const grid = document.getElementById('cardsGrid');
+        grid.innerHTML = vocabulary.map((vocab, idx) => generateCardHTML(vocab, idx)).join('');
+        initAllCards();
+    }
+
+    // 语音系统
+    let currentUtterance = null;
+    function stopAnySpeech() { if (window.speechSynthesis?.speaking) window.speechSynthesis.cancel(); if (currentUtterance) currentUtterance = null; }
+    function speakChinese(text) {
+        if (!window.speechSynthesis || !text) return;
+        stopAnySpeech();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        utterance.rate = 0.88;
+        utterance.pitch = 1.08;
+        const setVoice = () => {
+            let voices = window.speechSynthesis.getVoices();
+            let selected = voices.find(v => (v.lang === 'zh-CN' || v.lang.startsWith('zh')) && (v.name.includes('Tingting') || v.name.includes('Xiaoxiao') || v.name.includes('Yaoyao')));
+            if (!selected) selected = voices.find(v => v.lang === 'zh-CN');
+            if (selected) utterance.voice = selected;
+            window.speechSynthesis.speak(utterance);
+        };
+        if (window.speechSynthesis.getVoices().length === 0) window.speechSynthesis.onvoiceschanged = setVoice;
+        else setVoice();
+        currentUtterance = utterance;
+        utterance.onend = () => currentUtterance = null;
+    }
+
+    let audioCtx = null;
+    function playFlipSound() {
+        try {
+            if (!audioCtx && window.AudioContext) audioCtx = new AudioContext();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = 400;
+            gain.gain.setValueAtTime(0.07, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+            osc.start(); osc.stop(now + 0.14);
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) data[i] = (Math.random() - 0.5) * 0.07;
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const noiseGain = audioCtx.createGain();
+            noise.connect(noiseGain); noiseGain.connect(audioCtx.destination);
+            noiseGain.gain.setValueAtTime(0.05, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+            noise.start(); noise.stop(now + 0.07);
+        } catch(e) {}
+    }
+
+    function initAllCards() {
+        const containers = document.querySelectorAll('.flashcard-container');
+        containers.forEach(container => {
+            const card = container.querySelector('.card');
+            let flipped = false;
+            const frontSide = container.querySelector('.card-front');
+            if (frontSide) {
+                frontSide.addEventListener('click', (e) => {
+                    if (e.target.closest('.vocab-pinyin') || e.target.closest('.vocab-hanzi')) return;
+                    if (!flipped) { card.classList.add('flipped'); flipped = true; playFlipSound(); }
+                });
+            }
+            const footerArea = container.querySelector('.footer-area');
+            if (footerArea) {
+                footerArea.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (flipped) { card.classList.remove('flipped'); flipped = false; playFlipSound(); }
+                });
+            }
+            
+            const pinyinRow = container.querySelector('.top-row[data-control="pinyin"]');
+            const hanziRow = container.querySelector('.top-row[data-control="hanzi"]');
+            const wordValue = container.querySelector('.back-hanzi')?.getAttribute('data-original') || '';
+            
+            if (pinyinRow) {
+                let pinyinState = 0;
+                const pinyinSpan = pinyinRow.querySelector('.back-pinyin');
+                const pinyinPlaceholder = pinyinRow.querySelector('.question-placeholder[data-placeholder="pinyin"]');
+                const pinyinHint = pinyinRow.querySelector('.hint-text.left-hint');
+                pinyinRow.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (pinyinState === 0) {
+                        speakChinese(wordValue);
+                        pinyinState = 1;
+                    } else if (pinyinState === 1) {
+                        pinyinSpan.classList.add('hidden-word');
+                        pinyinPlaceholder.classList.remove('hidden-word');
+                        pinyinHint.classList.remove('hidden-word');
+                        pinyinState = 2;
+                    } else if (pinyinState === 2) {
+                        pinyinSpan.classList.remove('hidden-word');
+                        pinyinPlaceholder.classList.add('hidden-word');
+                        pinyinHint.classList.add('hidden-word');
+                        pinyinState = 0;
+                    }
+                });
+            }
+            
+            if (hanziRow) {
+                let hanziState = 0;
+                const hanziSpan = hanziRow.querySelector('.back-hanzi');
+                const hanziPlaceholder = hanziRow.querySelector('.question-placeholder[data-placeholder="hanzi"]');
+                const hanziHint = hanziRow.querySelector('.hint-text.right-hint');
+                hanziRow.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (hanziState === 0) {
+                        speakChinese(wordValue);
+                        hanziState = 1;
+                    } else if (hanziState === 1) {
+                        hanziSpan.classList.add('hidden-word');
+                        hanziPlaceholder.classList.remove('hidden-word');
+                        hanziHint.classList.remove('hidden-word');
+                        hanziState = 2;
+                    } else if (hanziState === 2) {
+                        hanziSpan.classList.remove('hidden-word');
+                        hanziPlaceholder.classList.add('hidden-word');
+                        hanziHint.classList.add('hidden-word');
+                        hanziState = 0;
+                    }
+                });
+            }
+            
+            const frontPinyin = container.querySelector('.vocab-pinyin');
+            const frontHanzi = container.querySelector('.vocab-hanzi');
+            const wordText = container.querySelector('.back-hanzi')?.getAttribute('data-original') || '';
+            const wordHandler = (e) => { e.stopPropagation(); speakChinese(wordText); };
+            if (frontPinyin) frontPinyin.addEventListener('click', wordHandler);
+            if (frontHanzi) frontHanzi.addEventListener('click', wordHandler);
+            
+            const exItem = container.querySelector('.ex-item');
+            if (exItem) {
+                const hanziLine = exItem.querySelector('.ex-hanzi');
+                const pinyinLine = exItem.querySelector('.pinyin-line');
+                const chineseText = hanziLine?.innerText || '';
+                if (hanziLine) hanziLine.addEventListener('click', (e) => { e.stopPropagation(); speakChinese(chineseText); });
+                if (pinyinLine) {
+                    pinyinLine.addEventListener('click', (e) => { if (e.target === pinyinLine || e.target.classList.contains('pinyin-line')) { e.stopPropagation(); speakChinese(chineseText); } });
+                    pinyinLine.querySelectorAll('.pinyin-word').forEach(pw => {
+                        pw.addEventListener('click', (e) => { e.stopPropagation(); speakChinese(chineseText); });
+                    });
+                }
+            }
+            
+            let currentMode = 'all';
+            const toggleBtns = container.querySelectorAll('.toggle-btn');
+            const exPinyinLines = container.querySelectorAll('.ex-item .pinyin-line');
+            const exHanziLines = container.querySelectorAll('.ex-item .ex-hanzi');
+            const exEnDivs = container.querySelectorAll('.ex-item .ex-en');
+            function updateDisplay() {
+                exPinyinLines.forEach(el => el.classList.remove('hidden-line'));
+                exHanziLines.forEach(el => el.classList.remove('hidden-line'));
+                exEnDivs.forEach(el => el.classList.remove('hidden-line'));
+                if (currentMode === 'cn') { exPinyinLines.forEach(el => el.classList.add('hidden-line')); exEnDivs.forEach(el => el.classList.add('hidden-line')); }
+                else if (currentMode === 'pinyin') { exHanziLines.forEach(el => el.classList.add('hidden-line')); exEnDivs.forEach(el => el.classList.add('hidden-line')); }
+                else if (currentMode === 'en') { exPinyinLines.forEach(el => el.classList.add('hidden-line')); exHanziLines.forEach(el => el.classList.add('hidden-line')); }
+                toggleBtns.forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('data-mode') === currentMode) btn.classList.add('active'); });
+            }
+            toggleBtns.forEach(btn => btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const mode = btn.getAttribute('data-mode');
+                if (mode === 'cn') currentMode = 'cn';
+                else if (mode === 'pinyin') currentMode = 'pinyin';
+                else if (mode === 'en') currentMode = 'en';
+                else if (mode === 'all') currentMode = 'all';
+                updateDisplay();
+            }));
+            updateDisplay();
+        });
+    }
+
+    window.addEventListener('load', () => {
+        renderAllCards();
+        if (window.speechSynthesis) window.speechSynthesis.getVoices();
+    });
+</script>
+</body>
+</html>
